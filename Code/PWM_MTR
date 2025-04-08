@@ -1,0 +1,43 @@
+#include <avr/io.h>
+#include <util/delay.h>
+#include <avr/interrupt.h>
+
+
+uint16_t duty = 250; // 50% duty cycle for strong motor performance
+void forward(void);
+void reverse(void);
+
+int main(void){
+    CCP = 0xd8; // Unlock protected I/O registers
+
+    // Set clock to 8 MHz
+    CLKCTRL.OSCHFCTRLA = 0x14;
+    while (CLKCTRL.MCLKSTATUS & 0b00000001){
+        
+    }
+
+    //forward();
+    reverse();
+    while (1) {
+    }
+}
+void forward(void){
+    TCA0.SINGLE.CTRLA = (0x01) << 3 | 0x01; // Divide by 16 and enable peripheral
+    TCA0.SINGLE.CTRLB = 0x03;  // Enable Single-slope PWM
+    TCA0.SINGLE.CTRLB |= 0x01 << 4;
+    TCA0.SINGLE.PER = 500 - 1; // Set PWM frequency to 1 kHz
+    TCA0.SINGLE.CMP0 = duty;  // Set duty cycle
+    
+    PORTA.DIRSET = 0x03; // PA0 and PA1 is set as output
+    PORTA.OUTCLR = 0x02; // PA1 is 0
+}
+void reverse(void){
+    TCA0.SINGLE.CTRLA = (0x01) << 3 | 0x01; // Divide by 16 and enable peripheral
+    TCA0.SINGLE.CTRLB = 0x03;  // Enable Single-slope PWM
+    TCA0.SINGLE.CTRLB |= 0x01 << 5;
+    TCA0.SINGLE.PER = 500 - 1; // Set PWM frequency to 1 kHz
+    TCA0.SINGLE.CMP0 = duty;  // Set duty cycle
+    
+    PORTA.DIRSET = 0x03; // PA0 and PA1 is set as output
+    PORTA.OUTCLR = 0x01; // PA0 is 0
+}
