@@ -1,0 +1,40 @@
+#include <avr/io.h>
+#include <avr/interrupt.h>
+
+uint16_t value;
+uint16_t duty = 250;
+
+int main(void) {
+    CCP = 0xD8;
+    CLKCTRL.OSCHFCTRLA = 0x14; // 8 MHz
+    while (CLKCTRL.MCLKSTATUS & 0x01);
+
+    PORTA.DIRSET = 0b00100001;  // Set PA0 and PA2 as outputs
+
+    // Use Event System Channel 0 (can also use others if needed)
+    EVSYS.CHANNEL0 = 0x41;            // Connect input event from pin PA1
+    EVSYS.USERTCB1CAPT = 0x01;        // Route channel 0 to TCB1
+
+    TCB1.INTCTRL = 0x01;              // Enable interrupt
+    TCB1.EVCTRL = 0x01;               // Capture event input
+    TCB1.CTRLB = 0x04;                // Pulse Width Capture mode
+    TCB1.CTRLA = 0x01;                // Enable with no prescaler
+
+    sei();  // Global interrupts enabled
+
+    while (1) {
+        // Idle loop
+    }
+}
+
+ISR(TCB1_INT_vect) {
+    TCB1.INTFLAGS = 0x01;             // Clear interrupt flag
+    TCA0.SINGLE.CMP0 = duty;          // Example: update PWM duty cycle
+    value = TCB1.CCMP;                // Read captured pulse width
+
+    if (value >= 300 && value <= 390) {
+        PORTA.OUTSET = (1 << 5);      // Set PA5 high
+    } else {
+        PORTA.OUTCLR = (1 << 5);      // Set PA5 low
+    }
+}
